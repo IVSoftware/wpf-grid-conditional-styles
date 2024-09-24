@@ -81,61 +81,27 @@ namespace wpf_grid_conditional_styles
             Loaded += (sender, e) =>
             {
                 #region T E S T I N G
-
+                // Add line items with initial (non-dynamic) formatting
+                DataContext.FinancialMetrics.Add(new FinancialMetric(Metric.Growth)
+                {
+                    {"2022", new FormattableObject{Target= "-4.0%" } },
+                    {"2023", new FormattableObject{Target= " 1.2%" } },
+                    {"2024", new FormattableObject{Target= "11.9%" } },
+                });
+                DataContext.FinancialMetrics.Add(new FinancialMetric(Metric.EBIT));
+                DataContext.FinancialMetrics.Add(new FinancialMetric(Metric.ROI));
+                DataContext.FinancialMetrics.Add(new FinancialMetric(Metric.Revenue)
+                {
+                    {"2023", new FormattableObject{Target= 999999.00, ForeColor = Brushes.Blue } },
+                });
                 DataContext.FinancialMetrics.Add(new FinancialMetric(Metric.StockPrice)
                 {
-                    {"2023", new FormattableObject{Target= 66.22, ForeColor = Brushes.Blue } },
+                    {"2023", new FormattableObject{Target= 66.22, ForeColor = Brushes.Maroon } },
+                    {"2024", new FormattableObject{Target= 11.8, ForeColor = Brushes.Red } },
                 });
-#if false
-                foreach (var metric in Enum.GetValues<Metric>())
-                {
-                    var lineItem = new FinancialMetric(metric)
-                    switch (metric)
-                    {
-                        case Metric.StockPrice:
-                            lineItem["2023"] = new FormattableObject
-                            {
-                                Target = 66.22,
-                                ForeColor = Brushes.Blue,
-                            };
-                            lineItem["2024"] = new FormattableObject
-                            {
-                                Target = 11.8,
-                                ForeColor = Brushes.Red,
-                            }; 
-                            break;
-                         case Metric.Revenue:
-                            lineItem["2023"] = new FormattableObject
-                            {
-                                Target = 999999,
-                                ForeColor = Brushes.Green,
-                            };
-                            break;
-                        case Metric.Growth:
-                            lineItem["2022"] = new FormattableObject
-                            {
-                                Target = "-4.0%",
-                                ForeColor = Brushes.Green,
-                            };
-                            lineItem["2023"] = new FormattableObject
-                            {
-                                Target = "1.2%",
-                                ForeColor = Brushes.Green,
-                            };
-                            lineItem["2024"] = new FormattableObject
-                            {
-                                Target = "11.9%",
-                                ForeColor = Brushes.Green,
-                            };
-                            break;
-                    }
-                    DataContext.FinancialMetrics.Add(lineItem);
-                }
-#endif
                 #endregion T E S T I N G
             };
         }
-
         new MainWindowViewModel DataContext => (MainWindowViewModel)base.DataContext;
     }
     class MainWindowViewModel : INotifyPropertyChanged
