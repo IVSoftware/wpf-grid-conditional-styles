@@ -24,10 +24,20 @@ namespace wpf_grid_conditional_styles
                     }
                     else
                     {
+                        var textBlockFactory = new FrameworkElementFactory(typeof(TextBlock));
+                        textBlockFactory.SetBinding(TextBlock.TextProperty, new Binding($"[{e.Key}].FormattedText"));
+                        textBlockFactory.SetBinding(TextBlock.ForegroundProperty, new Binding($"[{e.Key}].ForeColor"));
+                        textBlockFactory.SetBinding(TextBlock.BackgroundProperty, new Binding($"[{e.Key}].BackColor"));
+
+                        var template = new DataTemplate
+                        {
+                            VisualTree = textBlockFactory,
+                        };
+
                         HistoricDataGrid.Columns.Add(new DataGridTemplateColumn
                         {
                             Header = e.Key,
-                            Binding = new Binding($"[{e.Key}]")
+                            CellTemplate = template,
                         });
                     }
                 };
@@ -44,8 +54,16 @@ namespace wpf_grid_conditional_styles
                     switch (metric)
                     {
                         case Metric.StockPrice:
-                            lineItem["2023"] = 66.22;
-                            lineItem["2024"] = 11.80;
+                            lineItem["2023"] = new FormattableObject
+                            {
+                                Target = 66.22,
+                                ForeColor = Brushes.Red,
+                            };
+                            lineItem["2024"] = new FormattableObject
+                            {
+                                Target = 11.80,
+                                ForeColor = Brushes.Green,
+                            }; 
                             break;
                         default:
                             break;
@@ -78,31 +96,9 @@ namespace wpf_grid_conditional_styles
         StockPrice,
         Growth,
     }
+
     class FinancialMetric : INotifyPropertyChanged
     {
-#if false
-        public virtual string DisplayValue
-        {
-            get
-            {
-                // Opportunity to customize.
-                switch (Metric)
-                {
-                    case Metric.Revenue:
-                    case Metric.NetIncome:
-                    case Metric.EBIT:
-                    case Metric.GrossMargin:
-                    case Metric.ROI:
-                    case Metric.StockPrice:
-                    default:
-                        return $"{Metric}";
-                }
-            }
-        }
-        string _displayValue = string.Empty;
-#endif
-
-
         public Metric Metric
         {
             get => _metric;
@@ -115,9 +111,9 @@ namespace wpf_grid_conditional_styles
                 }
             }
         }
-        Metric _metric = default;
+        Metric _metric = default; private object? _target;
 
-        public object? this[string key]
+        public FormattableObject? this[string key]
         {
             get => _columns.TryGetValue(key, out var value) ? value : null;
             set
@@ -138,7 +134,7 @@ namespace wpf_grid_conditional_styles
                 OnPropertyChanged(key);
             }
         }
-        private readonly Dictionary<string, object> _columns = new();
+        private readonly Dictionary<string, FormattableObject> _columns = new();
 
         protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null) =>
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
@@ -159,103 +155,13 @@ namespace wpf_grid_conditional_styles
         public object? Value { get; }
         ColumnChangeAction Action { get; }
     }
-    public class FormattableObject : INotifyPropertyChanged
+    class FormattableObject : INotifyPropertyChanged
     {
-        private object? _target;
-        public object? Target
-        {
-            get => _target;
-            set
-            {
-                if (!Equals(_target, value))
-                {
-                    _target = value;
-                    OnPropertyChanged();
-                    UpdateFormattedText();
-                    UpdateColors();
-                }
-            }
-        }
-
-        private Brush? _foreColor;
-        public Brush? ForeColor
-        {
-            get => _foreColor;
-            set
-            {
-                if (!Equals(_foreColor, value))
-                {
-                    _foreColor = value;
-                    OnPropertyChanged();
-                }
-            }
-        }
-
-        private Brush? _backColor;
-        public Brush? BackColor
-        {
-            get => _backColor;
-            set
-            {
-                if (!Equals(_backColor, value))
-                {
-                    _backColor = value;
-                    OnPropertyChanged();
-                }
-            }
-        }
-
-        private string? _formattedText;
-        public string? FormattedText
-        {
-            get => _formattedText;
-            private set
-            {
-                if (_formattedText != value)
-                {
-                    _formattedText = value;
-                    OnPropertyChanged();
-                }
-            }
-        }
-
-        public FormattableObject(object? target = null)
-        {
-            Target = target;
-        }
-
-        private void UpdateFormattedText()
-        {
-            // Implement custom formatting logic here
-            if (Target is double numericValue)
-            {
-                FormattedText = numericValue.ToString("N2");
-            }
-            else if (Target != null)
-            {
-                FormattedText = Target.ToString();
-            }
-            else
-            {
-                FormattedText = string.Empty;
-            }
-        }
-
-        private void UpdateColors()
-        {
-            // Implement custom color logic here
-            if (Target is double numericValue)
-            {
-                ForeColor = numericValue >= 0 ? Brushes.Green : Brushes.Red;
-                BackColor = Brushes.Transparent;
-            }
-            else
-            {
-                ForeColor = Brushes.Black;
-                BackColor = Brushes.Transparent;
-            }
-        }
-
+        public object? Target { get; set; }
+        public FinancialMetric? Parent { get; set; }
+        public virtual string? FormattedText => Target?.ToString();
+        public Brush? ForeColor { get; set; } = Brushes.Black;
+        public Brush? BackColor { get; set; } = Brushes.White;
         protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null) =>
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 
