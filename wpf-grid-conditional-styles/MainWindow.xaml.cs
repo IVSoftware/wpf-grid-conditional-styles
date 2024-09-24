@@ -186,6 +186,14 @@ namespace wpf_grid_conditional_styles
                         switch (Metric)
                         {
                             case Metric.Revenue:
+                                if (formattable.Target is IFormattable number)
+                                {
+                                    generic.NewValue = number.ToString("C", CultureInfo.CurrentCulture);
+                                }
+                                else
+                                {
+                                    generic.NewValue = formattable.Target?.ToString();
+                                }
                                 break;
                             case Metric.NetIncome:
                                 break;
