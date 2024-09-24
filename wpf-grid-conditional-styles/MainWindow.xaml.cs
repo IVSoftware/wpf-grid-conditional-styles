@@ -84,9 +84,9 @@ namespace wpf_grid_conditional_styles
                 // Add line items with initial (non-dynamic) formatting
                 DataContext.FinancialMetrics.Add(new FinancialMetric(Metric.Growth)
                 {
-                    {"2022", new FormattableObject{Target= "-4.0%" } },
-                    {"2023", new FormattableObject{Target= " 1.2%" } },
-                    {"2024", new FormattableObject{Target= "11.9%" } },
+                    {"2022", "-4.0%" }, // Using implicit string CTOR
+                    {"2023", " 1.2%" },
+                    {"2024", "11.9%" },
                 });
                 DataContext.FinancialMetrics.Add(new FinancialMetric(Metric.EBIT));
                 DataContext.FinancialMetrics.Add(new FinancialMetric(Metric.ROI));
@@ -130,7 +130,7 @@ namespace wpf_grid_conditional_styles
     class FinancialMetric : INotifyPropertyChanged, IEnumerable<KeyValuePair<string, FormattableObject>>
     {
         public FinancialMetric(Metric metric) => Metric = metric;
-        public Metric Metric { get;  }
+        public Metric Metric { get; set; }
 
         // For collection initializer
         public void Add(string key, FormattableObject value) => this[key] = value;
@@ -231,6 +231,11 @@ namespace wpf_grid_conditional_styles
     }
     class FormattableObject : INotifyPropertyChanged
     {
+        public static implicit operator FormattableObject(double value) =>
+            new FormattableObject { Target = value };
+
+        public static implicit operator FormattableObject(string value) =>
+            new FormattableObject { Target = value };
         public object? Target
         {
             get => _target;
