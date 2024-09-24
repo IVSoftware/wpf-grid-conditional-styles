@@ -1,4 +1,5 @@
-﻿using System.Collections.ObjectModel;
+﻿using System.Collections;
+using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -8,6 +9,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Diagnostics;
+using System.Windows.Documents;
 using System.Windows.Media;
 
 namespace wpf_grid_conditional_styles
@@ -79,12 +81,15 @@ namespace wpf_grid_conditional_styles
             Loaded += (sender, e) =>
             {
                 #region T E S T I N G
+
+                DataContext.FinancialMetrics.Add(new FinancialMetric(Metric.StockPrice)
+                {
+                    {"2023", new FormattableObject{Target= 66.22, ForeColor = Brushes.Blue } },
+                });
+#if false
                 foreach (var metric in Enum.GetValues<Metric>())
                 {
-                    var lineItem = new FinancialMetric
-                    {
-                        Metric = metric,
-                    };
+                    var lineItem = new FinancialMetric(metric)
                     switch (metric)
                     {
                         case Metric.StockPrice:
@@ -106,11 +111,27 @@ namespace wpf_grid_conditional_styles
                                 ForeColor = Brushes.Green,
                             };
                             break;
-                        default:
+                        case Metric.Growth:
+                            lineItem["2022"] = new FormattableObject
+                            {
+                                Target = "-4.0%",
+                                ForeColor = Brushes.Green,
+                            };
+                            lineItem["2023"] = new FormattableObject
+                            {
+                                Target = "1.2%",
+                                ForeColor = Brushes.Green,
+                            };
+                            lineItem["2024"] = new FormattableObject
+                            {
+                                Target = "11.9%",
+                                ForeColor = Brushes.Green,
+                            };
                             break;
                     }
                     DataContext.FinancialMetrics.Add(lineItem);
                 }
+#endif
                 #endregion T E S T I N G
             };
         }
@@ -140,21 +161,15 @@ namespace wpf_grid_conditional_styles
         Growth,
     }
 
-    class FinancialMetric : INotifyPropertyChanged
+    class FinancialMetric : INotifyPropertyChanged, IEnumerable<KeyValuePair<string, FormattableObject>>
     {
-        public Metric Metric
-        {
-            get => _metric;
-            set
-            {
-                if (!Equals(_metric, value))
-                {
-                    _metric = value;
-                    OnPropertyChanged();
-                }
-            }
-        }
-        Metric _metric = default; private object? _target;
+        public FinancialMetric(Metric metric) => Metric = metric;
+        public Metric Metric { get;  }
+
+        // For collection initializer
+        public void Add(string key, FormattableObject value) => this[key] = value;
+        public IEnumerator<KeyValuePair<string, FormattableObject>> GetEnumerator() => _columns.GetEnumerator();
+        IEnumerator IEnumerable.GetEnumerator() => _columns.GetEnumerator();
 
         public FormattableObject? this[string key]
         {
@@ -191,6 +206,7 @@ namespace wpf_grid_conditional_styles
                 switch (e.PropertyName)
                 {
                     case nameof(FormattableObject.Text):
+                        // T E X T    S A M P L E S
                         switch (Metric)
                         {
                             case Metric.Revenue:
@@ -203,14 +219,6 @@ namespace wpf_grid_conditional_styles
                                     generic.NewValue = formatTarget.ToString("C0", CultureInfo.CurrentCulture);
                                 }
                                 break;
-                            case Metric.NetIncome:
-                                break;
-                            case Metric.EBIT:
-                                break;
-                            case Metric.GrossMargin:
-                                break;
-                            case Metric.ROI:
-                                break;
                             case Metric.StockPrice:
                                 if (formatTarget is null)
                                 {
@@ -221,13 +229,17 @@ namespace wpf_grid_conditional_styles
                                     generic.NewValue = formatTarget.ToString("C2", CultureInfo.CurrentCulture);
                                 }
                                 break;
-                            case Metric.Growth:
-                                break;
-                            default:
-                                break;
                         }
                         break;
                     case nameof(FormattableObject.ForeColor):
+                        // C O L O R    S A M P L E S
+                        switch (Metric)
+                        {
+                            case Metric.Growth:
+                                generic.NewValue = $"{formattable.Target}".Contains("-") ?
+                                    Brushes.Red : Brushes.Green;
+                                break;
+                        }
                         break;
                     case nameof(FormattableObject.BackColor):
                         break;
