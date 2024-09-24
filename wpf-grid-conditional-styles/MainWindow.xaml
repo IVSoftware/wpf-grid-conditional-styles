@@ -25,7 +25,10 @@
             CanUserAddRows="False"
             IsReadOnly="True">
             <DataGrid.Columns>
-                <DataGridTextColumn Header="Metric" Binding="{Binding Metric}" />
+                <DataGridTextColumn
+                    Header="Metric"
+                    Binding="{Binding Metric}"
+                    Width="*"/>
             </DataGrid.Columns>
         </DataGrid>
     </Grid>

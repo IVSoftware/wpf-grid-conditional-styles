@@ -18,6 +18,7 @@ namespace wpf_grid_conditional_styles
             {
                 if (sender is FinancialMetric metric)
                 {
+                    // Add column to grid if necessary.
                     if (HistoricDataGrid.Columns.Any(_ => string.Equals($"{_.Header}", e.Key, StringComparison.OrdinalIgnoreCase)))
                     {   /* G T K */
                         // Column Exists
@@ -25,9 +26,10 @@ namespace wpf_grid_conditional_styles
                     else
                     {
                         var textBlockFactory = new FrameworkElementFactory(typeof(TextBlock));
-                        textBlockFactory.SetBinding(TextBlock.TextProperty, new Binding($"[{e.Key}].FormattedText"));
+                        textBlockFactory.SetBinding(TextBlock.TextProperty, new Binding($"[{e.Key}].Text"));
                         textBlockFactory.SetBinding(TextBlock.ForegroundProperty, new Binding($"[{e.Key}].ForeColor"));
                         textBlockFactory.SetBinding(TextBlock.BackgroundProperty, new Binding($"[{e.Key}].BackColor"));
+                        textBlockFactory.SetValue(TextBlock.PaddingProperty, new Thickness(5, 0, 5, 0));
 
                         var template = new DataTemplate
                         {
@@ -37,14 +39,14 @@ namespace wpf_grid_conditional_styles
                         HistoricDataGrid.Columns.Add(new DataGridTemplateColumn
                         {
                             Header = e.Key,
-                            CellTemplate = template,
+                            CellTemplate = template
                         });
                     }
                 };
             };
             Loaded += (sender, e) =>
             {
-                // Initialize Test Data
+                #region T E S T I N G
                 foreach (var metric in Enum.GetValues<Metric>())
                 {
                     var lineItem = new FinancialMetric
@@ -70,6 +72,7 @@ namespace wpf_grid_conditional_styles
                     }
                     DataContext.FinancialMetrics.Add(lineItem);
                 }
+                #endregion T E S T I N G
             };
         }
         new MainWindowViewModel DataContext => (MainWindowViewModel)base.DataContext;
@@ -157,14 +160,68 @@ namespace wpf_grid_conditional_styles
     }
     class FormattableObject : INotifyPropertyChanged
     {
-        public object? Target { get; set; }
-        public FinancialMetric? Parent { get; set; }
-        public virtual string? FormattedText => Target?.ToString();
-        public Brush? ForeColor { get; set; } = Brushes.Black;
-        public Brush? BackColor { get; set; } = Brushes.White;
+        public object? Target
+        {
+            get => _target;
+            set
+            {
+                if (!Equals(_target, value))
+                {
+                    _target = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+        object? _target = default;
+
+        private T? RequestFromParent<T>(T value)
+        {
+            var e = new RequestFromParentEventArgs<T>();
+            PropertyRequestedFromParent?.Invoke(this, e);
+            return e.NewValue ?? value;
+        }
+        public string? Text => RequestFromParent(Target?.ToString());
+
+        public Brush? ForeColor
+        {
+            get => RequestFromParent(_foreColor);
+            set
+            {
+                if (_foreColor != value)
+                {
+                    _foreColor = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        private Brush? _foreColor = Brushes.Black;
+
+        public Brush? BackColor
+        {
+            get => RequestFromParent(_backColor);
+            set
+            {
+                if (_backColor != value)
+                {
+                    _backColor = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+        private Brush? _backColor = Brushes.White;
+
         protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null) =>
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 
         public event PropertyChangedEventHandler? PropertyChanged;
+        public event PropertyChangedEventHandler?  PropertyRequestedFromParent;
+    }
+    public class RequestFromParentEventArgs<T> : PropertyChangedEventArgs
+    {
+        public RequestFromParentEventArgs([CallerMemberName] string? propertyName = null)
+            : base(propertyName) { }
+
+        public T? NewValue { get; set; }
     }
 }
