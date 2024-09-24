@@ -1,10 +1,12 @@
 ﻿using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
+using System.Windows.Diagnostics;
 using System.Windows.Media;
 
 namespace wpf_grid_conditional_styles
@@ -28,23 +30,30 @@ namespace wpf_grid_conditional_styles
                             }
                             else
                             {
-                                var textBlockFactory = new FrameworkElementFactory(typeof(TextBlock));
-                                textBlockFactory.SetBinding(TextBlock.TextProperty, new Binding($"[{e.Key}].Text"));
-                                textBlockFactory.SetBinding(TextBlock.ForegroundProperty, new Binding($"[{e.Key}].ForeColor"));
-                                textBlockFactory.SetBinding(TextBlock.BackgroundProperty, new Binding($"[{e.Key}].BackColor"));
-                                textBlockFactory.SetValue(TextBlock.PaddingProperty, new Thickness(5, 0, 5, 0));
-
-                                var template = new DataTemplate
+                                if (metric[e.Key] is FormattableObject formattable)
                                 {
-                                    VisualTree = textBlockFactory,
-                                };
+                                    var textBlockFactory = new FrameworkElementFactory(typeof(TextBlock));
+                                    textBlockFactory.SetBinding(DataContextProperty, new Binding($"[{e.Key}]"));
+                                    textBlockFactory.SetBinding(TextBlock.TextProperty, new Binding("Text"));
+                                    textBlockFactory.SetBinding(TextBlock.ForegroundProperty, new Binding("ForeColor"));
+                                    textBlockFactory.SetBinding(TextBlock.BackgroundProperty, new Binding("BackColor"));
+                                    textBlockFactory.SetValue(TextBlock.PaddingProperty, new Thickness(5, 0, 5, 0));
 
-                                HistoricDataGrid.Columns.Add(new DataGridTemplateColumn
-                                {
-                                    Header = e.Key,
-                                    CellTemplate = template
-                                });
+                                    var template = new DataTemplate
+                                    {
+                                        VisualTree = textBlockFactory,
+                                    };
+
+                                    HistoricDataGrid.Columns.Add(new DataGridTemplateColumn
+                                    {
+                                        Header = e.Key,
+                                        CellTemplate = template
+                                    });
+                                }
+                                else Debug.Fail($"Expecting {nameof(FormattableObject)}");
                             }
+                            // Refresh listener always.
+                            
                             break;
                         case ColumnChangeAction.Remove:
                             // Check to see whether the key is still in use before removing.
