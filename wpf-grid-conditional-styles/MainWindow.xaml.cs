@@ -24,14 +24,14 @@ namespace wpf_grid_conditional_styles
                     switch (e.Action)
                     {
                         case ColumnChangeAction.Add:
-                            // Add column to grid IF NECESSARY.
-                            if (HistoricDataGrid.Columns.Any(_ => string.Equals($"{_.Header}", e.Key, StringComparison.OrdinalIgnoreCase)))
-                            {   /* G T K */
-                                // Column Exists
-                            }
-                            else
+                            if (metric[e.Key] is FormattableObject formattable)
                             {
-                                if (metric[e.Key] is FormattableObject formattable)
+                                // Add column to grid IF NECESSARY.
+                                if (HistoricDataGrid.Columns.Any(_ => string.Equals($"{_.Header}", e.Key, StringComparison.OrdinalIgnoreCase)))
+                                {   /* G T K */
+                                    // Column Exists
+                                }
+                                else
                                 {
                                     var textBlockFactory = new FrameworkElementFactory(typeof(TextBlock));
                                     textBlockFactory.SetBinding(DataContextProperty, new Binding($"[{e.Key}]"));
@@ -50,13 +50,13 @@ namespace wpf_grid_conditional_styles
                                         Header = e.Key,
                                         CellTemplate = template
                                     });
-                                    // This is the DYNAMIC GLUE that allows this specific
-                                    // FinancialMetric to resond to this specific FormattableObject.
-                                    formattable.PropertyRequestedFromParent -= metric.ProvidePropertyValue;
-                                    formattable.PropertyRequestedFromParent += metric.ProvidePropertyValue;
                                 }
-                                else Debug.Fail($"Expecting {nameof(FormattableObject)}");
+                                // This is the DYNAMIC GLUE that allows this specific
+                                // FinancialMetric to respond to this specific FormattableObject.
+                                formattable.PropertyRequestedFromParent -= metric.ProvidePropertyValue;
+                                formattable.PropertyRequestedFromParent += metric.ProvidePropertyValue;
                             }
+                            else Debug.Fail($"Expecting {nameof(FormattableObject)}");
                             break;
                         case ColumnChangeAction.Remove:
                             // Check to see whether the key is still in use before removing.
@@ -91,13 +91,20 @@ namespace wpf_grid_conditional_styles
                             lineItem["2023"] = new FormattableObject
                             {
                                 Target = 66.22,
-                                ForeColor = Brushes.Red,
+                                ForeColor = Brushes.Blue,
                             };
                             lineItem["2024"] = new FormattableObject
                             {
-                                Target = 11.80,
-                                ForeColor = Brushes.Green,
+                                Target = 11.8,
+                                ForeColor = Brushes.Red,
                             }; 
+                            break;
+                         case Metric.Revenue:
+                            lineItem["2023"] = new FormattableObject
+                            {
+                                Target = 999999,
+                                ForeColor = Brushes.Green,
+                            };
                             break;
                         default:
                             break;
@@ -180,19 +187,20 @@ namespace wpf_grid_conditional_styles
             dynamic generic = e;
             if (sender is FormattableObject formattable)
             {
+                var formatTarget = formattable.Target as IFormattable;
                 switch (e.PropertyName)
                 {
                     case nameof(FormattableObject.Text):
                         switch (Metric)
                         {
                             case Metric.Revenue:
-                                if (formattable.Target is IFormattable number)
+                                if (formatTarget is null)
                                 {
-                                    generic.NewValue = number.ToString("C", CultureInfo.CurrentCulture);
+                                    generic.NewValue = formattable.Target?.ToString();
                                 }
                                 else
                                 {
-                                    generic.NewValue = formattable.Target?.ToString();
+                                    generic.NewValue = formatTarget.ToString("C0", CultureInfo.CurrentCulture);
                                 }
                                 break;
                             case Metric.NetIncome:
@@ -204,13 +212,13 @@ namespace wpf_grid_conditional_styles
                             case Metric.ROI:
                                 break;
                             case Metric.StockPrice:
-                                if (formattable.Target is IFormattable number)
+                                if (formatTarget is null)
                                 {
-                                    generic.NewValue = number.ToString("C2", CultureInfo.CurrentCulture);
+                                    generic.NewValue = formattable.Target?.ToString();
                                 }
                                 else
                                 {
-                                    generic.NewValue = formattable.Target?.ToString();
+                                    generic.NewValue = formatTarget.ToString("C2", CultureInfo.CurrentCulture);
                                 }
                                 break;
                             case Metric.Growth:
