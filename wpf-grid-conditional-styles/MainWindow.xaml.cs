@@ -2,6 +2,7 @@
 using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
@@ -49,11 +50,13 @@ namespace wpf_grid_conditional_styles
                                         Header = e.Key,
                                         CellTemplate = template
                                     });
+                                    // This is the DYNAMIC GLUE that allows this specific
+                                    // FinancialMetric to resond to this specific FormattableObject.
+                                    formattable.PropertyRequestedFromParent -= metric.ProvidePropertyValue;
+                                    formattable.PropertyRequestedFromParent += metric.ProvidePropertyValue;
                                 }
                                 else Debug.Fail($"Expecting {nameof(FormattableObject)}");
                             }
-                            // Refresh listener always.
-                            
                             break;
                         case ColumnChangeAction.Remove:
                             // Check to see whether the key is still in use before removing.
@@ -104,6 +107,7 @@ namespace wpf_grid_conditional_styles
                 #endregion T E S T I N G
             };
         }
+
         new MainWindowViewModel DataContext => (MainWindowViewModel)base.DataContext;
     }
     class MainWindowViewModel : INotifyPropertyChanged
@@ -171,6 +175,50 @@ namespace wpf_grid_conditional_styles
         protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null) =>
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 
+        internal void ProvidePropertyValue(object? sender, PropertyChangedEventArgs e)
+        {
+            dynamic generic = e;
+            if (sender is FormattableObject formattable)
+            {
+                switch (e.PropertyName)
+                {
+                    case nameof(FormattableObject.Text):
+                        switch (Metric)
+                        {
+                            case Metric.Revenue:
+                                break;
+                            case Metric.NetIncome:
+                                break;
+                            case Metric.EBIT:
+                                break;
+                            case Metric.GrossMargin:
+                                break;
+                            case Metric.ROI:
+                                break;
+                            case Metric.StockPrice:
+                                if (formattable.Target is IFormattable number)
+                                {
+                                    generic.NewValue = number.ToString("C2", CultureInfo.CurrentCulture);
+                                }
+                                else
+                                {
+                                    generic.NewValue = formattable.Target?.ToString();
+                                }
+                                break;
+                            case Metric.Growth:
+                                break;
+                            default:
+                                break;
+                        }
+                        break;
+                    case nameof(FormattableObject.ForeColor):
+                        break;
+                    case nameof(FormattableObject.BackColor):
+                        break;
+                }
+            }
+        }
+
         public event PropertyChangedEventHandler? PropertyChanged;
         public static event EventHandler<ColumnChangeEventArgs>? ColumnChanged;
     }
@@ -203,9 +251,9 @@ namespace wpf_grid_conditional_styles
         }
         object? _target = default;
 
-        private T? RequestFromParent<T>(T value)
+        private T? RequestFromParent<T>(T value, [CallerMemberName] string? propertyName = null)
         {
-            var e = new RequestFromParentEventArgs<T>();
+            var e = new RequestFromParentEventArgs<T>(propertyName ?? string.Empty);
             PropertyRequestedFromParent?.Invoke(this, e);
             return e.NewValue ?? value;
         }
@@ -244,11 +292,11 @@ namespace wpf_grid_conditional_styles
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 
         public event PropertyChangedEventHandler? PropertyChanged;
-        public event PropertyChangedEventHandler?  PropertyRequestedFromParent;
+        public event PropertyChangedEventHandler? PropertyRequestedFromParent;
     }
     public class RequestFromParentEventArgs<T> : PropertyChangedEventArgs
     {
-        public RequestFromParentEventArgs([CallerMemberName] string? propertyName = null)
+        public RequestFromParentEventArgs(string propertyName)
             : base(propertyName) { }
 
         public T? NewValue { get; set; }
