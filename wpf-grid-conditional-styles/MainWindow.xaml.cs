@@ -18,29 +18,49 @@ namespace wpf_grid_conditional_styles
             {
                 if (sender is FinancialMetric metric)
                 {
-                    // Add column to grid if necessary.
-                    if (HistoricDataGrid.Columns.Any(_ => string.Equals($"{_.Header}", e.Key, StringComparison.OrdinalIgnoreCase)))
-                    {   /* G T K */
-                        // Column Exists
-                    }
-                    else
+                    switch (e.Action)
                     {
-                        var textBlockFactory = new FrameworkElementFactory(typeof(TextBlock));
-                        textBlockFactory.SetBinding(TextBlock.TextProperty, new Binding($"[{e.Key}].Text"));
-                        textBlockFactory.SetBinding(TextBlock.ForegroundProperty, new Binding($"[{e.Key}].ForeColor"));
-                        textBlockFactory.SetBinding(TextBlock.BackgroundProperty, new Binding($"[{e.Key}].BackColor"));
-                        textBlockFactory.SetValue(TextBlock.PaddingProperty, new Thickness(5, 0, 5, 0));
+                        case ColumnChangeAction.Add:
+                            // Add column to grid IF NECESSARY.
+                            if (HistoricDataGrid.Columns.Any(_ => string.Equals($"{_.Header}", e.Key, StringComparison.OrdinalIgnoreCase)))
+                            {   /* G T K */
+                                // Column Exists
+                            }
+                            else
+                            {
+                                var textBlockFactory = new FrameworkElementFactory(typeof(TextBlock));
+                                textBlockFactory.SetBinding(TextBlock.TextProperty, new Binding($"[{e.Key}].Text"));
+                                textBlockFactory.SetBinding(TextBlock.ForegroundProperty, new Binding($"[{e.Key}].ForeColor"));
+                                textBlockFactory.SetBinding(TextBlock.BackgroundProperty, new Binding($"[{e.Key}].BackColor"));
+                                textBlockFactory.SetValue(TextBlock.PaddingProperty, new Thickness(5, 0, 5, 0));
 
-                        var template = new DataTemplate
-                        {
-                            VisualTree = textBlockFactory,
-                        };
+                                var template = new DataTemplate
+                                {
+                                    VisualTree = textBlockFactory,
+                                };
 
-                        HistoricDataGrid.Columns.Add(new DataGridTemplateColumn
-                        {
-                            Header = e.Key,
-                            CellTemplate = template
-                        });
+                                HistoricDataGrid.Columns.Add(new DataGridTemplateColumn
+                                {
+                                    Header = e.Key,
+                                    CellTemplate = template
+                                });
+                            }
+                            break;
+                        case ColumnChangeAction.Remove:
+                            // Check to see whether the key is still in use before removing.
+                            if (!DataContext.FinancialMetrics
+                                .Any(fm => fm != metric && fm[e.Key] != null))
+                            {
+                                if (
+                                    HistoricDataGrid
+                                    .Columns
+                                    .FirstOrDefault(_ => string.Equals($"{_.Header}", e.Key, StringComparison.OrdinalIgnoreCase))
+                                    is DataGridColumn remove)
+                                {
+                                    HistoricDataGrid.Columns.Remove(remove);
+                                }
+                            }
+                            break;
                     }
                 };
             };
@@ -156,7 +176,7 @@ namespace wpf_grid_conditional_styles
         }
         public string Key { get; }
         public object? Value { get; }
-        ColumnChangeAction Action { get; }
+        public ColumnChangeAction Action { get; }
     }
     class FormattableObject : INotifyPropertyChanged
     {
