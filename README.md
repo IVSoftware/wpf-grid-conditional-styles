@@ -10,16 +10,16 @@ public MainWindow()
     // Subscribe to static event
     FinancialMetric.DynamicValueCollectionChanged += (sender, e) =>
     {
-        var textBlockFactory = new FrameworkElementFactory(typeof(TextBlock));
-        textBlockFactory.SetBinding(DataContextProperty, new Binding($"[{e.Key}]"));
-        textBlockFactory.SetBinding(TextBlock.TextProperty, new Binding("Text"));
-        textBlockFactory.SetBinding(TextBlock.ForegroundProperty, new Binding("ForeColor"));
-        textBlockFactory.SetBinding(TextBlock.BackgroundProperty, new Binding("BackColor"));
-        textBlockFactory.SetValue(TextBlock.PaddingProperty, new Thickness(5, 0, 5, 0));
-
+        var textBoxFactory = new FrameworkElementFactory(typeof(TextBox));
+        textBoxFactory.SetBinding(DataContextProperty, new Binding($"[{e.Key}]"));
+        textBoxFactory.SetBinding(TextBox.TextProperty, new Binding("Text"));
+        textBoxFactory.SetBinding(TextBox.ForegroundProperty, new Binding("ForeColor"));
+        textBoxFactory.SetBinding(TextBox.BackgroundProperty, new Binding("BackColor"));
+        textBoxFactory.SetValue(TextBox.PaddingProperty, new Thickness(5, 0, 5, 0));
+        textBoxFactory.SetValue(TextBox.MinWidthProperty, 75d);
         var template = new DataTemplate
         {
-            VisualTree = textBlockFactory,
+            VisualTree = textBoxFactory,
         };
 
         HistoricDataGrid.Columns.Add(new DataGridTemplateColumn

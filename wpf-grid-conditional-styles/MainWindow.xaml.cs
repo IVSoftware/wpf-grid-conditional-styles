@@ -36,16 +36,16 @@ namespace wpf_grid_conditional_styles
                                 }
                                 else
                                 {
-                                    var textBlockFactory = new FrameworkElementFactory(typeof(TextBlock));
-                                    textBlockFactory.SetBinding(DataContextProperty, new Binding($"[{e.Key}]"));
-                                    textBlockFactory.SetBinding(TextBlock.TextProperty, new Binding("Text"));
-                                    textBlockFactory.SetBinding(TextBlock.ForegroundProperty, new Binding("ForeColor"));
-                                    textBlockFactory.SetBinding(TextBlock.BackgroundProperty, new Binding("BackColor"));
-                                    textBlockFactory.SetValue(TextBlock.PaddingProperty, new Thickness(5, 0, 5, 0));
-                                    textBlockFactory.SetValue(TextBlock.MinWidthProperty, 75d);
+                                    var textBoxFactory = new FrameworkElementFactory(typeof(TextBox));
+                                    textBoxFactory.SetBinding(DataContextProperty, new Binding($"[{e.Key}]"));
+                                    textBoxFactory.SetBinding(TextBox.TextProperty, new Binding("Text"));
+                                    textBoxFactory.SetBinding(TextBox.ForegroundProperty, new Binding("ForeColor"));
+                                    textBoxFactory.SetBinding(TextBox.BackgroundProperty, new Binding("BackColor"));
+                                    textBoxFactory.SetValue(TextBox.PaddingProperty, new Thickness(5, 0, 5, 0));
+                                    textBoxFactory.SetValue(TextBox.MinWidthProperty, 75d);
                                     var template = new DataTemplate
                                     {
-                                        VisualTree = textBlockFactory,
+                                        VisualTree = textBoxFactory,
                                     };
 
                                     HistoricDataGrid.Columns.Add(new DataGridTemplateColumn
@@ -261,7 +261,15 @@ namespace wpf_grid_conditional_styles
             PropertyRequestedFromParent?.Invoke(this, e);
             return e.NewValue ?? value;
         }
-        public string? Text => RequestFromParent(Target?.ToString());
+        public string? Text
+        {
+            get => RequestFromParent(Target?.ToString());
+            set
+            {
+                // N O O P
+                // Setter is required for this binding, however.
+            }
+        }
 
         public Brush? ForeColor
         {
