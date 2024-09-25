@@ -43,6 +43,7 @@ namespace wpf_grid_conditional_styles
                                     textBoxFactory.SetBinding(TextBox.BackgroundProperty, new Binding("BackColor"));
                                     textBoxFactory.SetValue(TextBox.PaddingProperty, new Thickness(5, 0, 5, 0));
                                     textBoxFactory.SetValue(TextBox.MinWidthProperty, 75d);
+                                    textBoxFactory.SetValue(TextBox.IsReadOnlyProperty, true);
                                     var template = new DataTemplate
                                     {
                                         VisualTree = textBoxFactory,
@@ -267,7 +268,7 @@ namespace wpf_grid_conditional_styles
             set
             {
                 // N O O P
-                // Setter is required for this binding, however.
+                throw new NotImplementedException("TODO: So far, we have only used the TextBox as Read Only.");
             }
         }
 
