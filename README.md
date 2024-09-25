@@ -1,40 +1,214 @@
-As I understand it, you're generating some columns dynamically and want to conditionally set some formats based on properties of the line item, even though you only have the one "fixed" column to start. The short answer is to use `DataGridTemplateCOlumn` instead of `DataGridTextColumn`. But before looking at code, consider that it's probably the `FinancialMetric` line item that needs to know what columns that it needs. This way, when a column gets added, the `FinancialMetric` object can fire a static `ColumnChanged` event so that the `HistoricDataGrid` can determine whether it needs to add that column, or if it aleady exists.
 
-The other aspect of this is that when we add a column like year "2023", the associated value should be a class that exposes properties for Text (as in formatted), ForeColor, and BackColor. In the sample below, there's a `FormattedObject` class for this purpose.
+Your specification is for _dynamic_ columns, which makes things more interesting. One way to meet your spec is by using `DataGridTemplateColumn` instead of `DataGridTextColumn` and that's how I would answer (the rest is details).
 
-With these things in mind, it might make better sense to look at how `HistoricDataGrid` can be populated in a minimal way using the `Loaded` event handler.
+```
+var textBlockFactory = new FrameworkElementFactory(typeof(TextBlock));
+textBlockFactory.SetBinding(DataContextProperty, new Binding($"[{e.Key}]"));
+textBlockFactory.SetBinding(TextBlock.TextProperty, new Binding("Text"));
+textBlockFactory.SetBinding(TextBlock.ForegroundProperty, new Binding("ForeColor"));
+textBlockFactory.SetBinding(TextBlock.BackgroundProperty, new Binding("BackColor"));
+textBlockFactory.SetValue(TextBlock.PaddingProperty, new Thickness(5, 0, 5, 0));
 
-```csharp
-public MainWindow()
+var template = new DataTemplate
 {
-    .
-    .
-    .
-    Loaded += (sender, e) =>
+    VisualTree = textBlockFactory,
+};
+
+HistoricDataGrid.Columns.Add(new DataGridTemplateColumn
+{
+    Header = e.Key,
+    CellTemplate = template
+});
+```
+
+___
+
+_It takes a few steps to glue the bindings together, and before I waste your time reading below where I explain things, you might want to [clone]() and run my working example to verify that this is the kind of behavior you're looking for._
+___
+
+#### Example `FinancialMetric` class (represents a line item bound to a grid row)
+
+What the above snippet says about the `FinancialMetric` object bound to a given row is that there needs to be an indexer that provides the data context. There's going to be a _key_, the dynamically specified column name, and we need to be able to retrieve an object that can provide the `ForeColor`, `BackColor`, and (formatted) `Text`. 
+
+As a forward reference, we'll be making our own `FormattableObject` class that can wrap any `object` while also providing the cell-specific format info. We know that `FinancialMetric` class must provide an indexer for `FinancialMetic` that can set or get one of these objects, and subscribing to an event that will give `FinancialObject` the "final say" on the formatting of a given cell value, based on runtime calculations by the containing object. 
+
+```
+class FinancialMetric
+{
+    // The indexer for new Binding($"[{e.Key}]")
+    public FormattableObject? this[string key]
     {
-        #region T E S T I N G
-        // Add line items with initial (non-dynamic) formatting
-        DataContext.FinancialMetrics.Add(new FinancialMetric(Metric.Growth)
+        get => _columns.TryGetValue(key, out var value) ? value : null;
+        set
         {
-            {"2022", new FormattableObject{Target= "-4.0%" } },
-            {"2023", new FormattableObject{Target= " 1.2%" } },
-            {"2024", new FormattableObject{Target= "11.9%" } },
-        });
-        DataContext.FinancialMetrics.Add(new FinancialMetric(Metric.EBIT));
-        DataContext.FinancialMetrics.Add(new FinancialMetric(Metric.ROI));
-        DataContext.FinancialMetrics.Add(new FinancialMetric(Metric.Revenue)
-        {
-            {"2023", new FormattableObject{Target= 999999.00, ForeColor = Brushes.Blue } },
-        });
-        DataContext.FinancialMetrics.Add(new FinancialMetric(Metric.StockPrice)
-        {
-            {"2023", new FormattableObject{Target= 66.22, ForeColor = Brushes.Maroon } },
-            {"2024", new FormattableObject{Target= 11.8, ForeColor = Brushes.Red } },
-        });
-        #endregion T E S T I N G
-    };
+            if (value is null)
+            {
+                if (_columns.ContainsKey(key))
+                {
+                    _columns.Remove(key);
+                    ColumnChanged?.Invoke(this, new ColumnChangeEventArgs(key));
+                }
+            }
+            else
+            {
+                _columns[key] = value;
+
+                // This is the DYNAMIC GLUE that allows this specific
+                // FinancialMetric to respond to this specific FormattableObject.
+                value.PropertyRequestedFromParent -= ProvidePropertyValue;
+                value.PropertyRequestedFromParent += ProvidePropertyValue;
+
+                // This is an event, declared static, that informs the grid that
+                // this value goes in a column named {key} which needs to be created
+                // if it doesn't already exist.
+                ColumnChanged?.Invoke(this, new ColumnChangeEventArgs(key, value));
+            }
+            OnPropertyChanged(key);
+        }
+    }
+    private readonly Dictionary<string, FormattableObject> _columns = new();
+    .
+    .
+    .
 }
 ```
 ___
 
+###### USAGE: Create 5 different line items with dynamic column values.
+
+```
+DataContext.FinancialMetrics.Add(new FinancialMetric(Metric.Growth)
+{
+    {"2022", new FormattableObject{Target= "-4.0%" } },
+    {"2023", new FormattableObject{Target= " 1.2%" } },
+    {"2024", new FormattableObject{Target= "11.9%" } },
+});
+DataContext.FinancialMetrics.Add(new FinancialMetric(Metric.EBIT));
+DataContext.FinancialMetrics.Add(new FinancialMetric(Metric.ROI));
+DataContext.FinancialMetrics.Add(new FinancialMetric(Metric.Revenue)
+{
+    {"2023", new FormattableObject{Target= 999999.00, ForeColor = Brushes.Blue } },
+});
+DataContext.FinancialMetrics.Add(new FinancialMetric(Metric.StockPrice)
+{
+    {"2023", new FormattableObject{Target= 66.22, ForeColor = Brushes.Maroon } },
+    {"2024", new FormattableObject{Target= 11.8, ForeColor = Brushes.Red } },
+});
+```
+
+___
+
+#### `FinancialMetric` gets the final say on formatting.
+
+If we hava a `FinancialMetric` instance, we could use the expression `var formattedObject = lineItem["2023"]`. This is exactly what the `DataGridTemplateColumn` binding is doing. And since the grid is going to come `get` the value to paint the cell using this `FormattableObject`, the trick is going to be eventing the line item first.
+
+```
+class FormattableObject : INotifyPropertyChanged
+{
+    public object? Target
+    {
+        get => _target;
+        set
+        {
+            if (!Equals(_target, value))
+            {
+                _target = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+    object? _target = default;
+
+    private T? RequestFromParent<T>(T value, [CallerMemberName] string? propertyName = null)
+    {
+        var e = new RequestFromParentEventArgs<T>(propertyName ?? string.Empty);
+        PropertyRequestedFromParent?.Invoke(this, e);
+        return e.NewValue ?? value;
+    }
+
+    // Requesting the formatted value of ForeColor from parent.
+    public Brush? ForeColor
+    {
+        get => RequestFromParent(_foreColor);
+        set
+        {
+            if (_foreColor != value)
+            {
+                _foreColor = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    // Requesting the formatted value of the Text from parent.
+    public string? Text => RequestFromParent(Target?.ToString());
+    .
+    .
+    .
+}
+
+___
+
+#### Example of Parent handling the formatting request
+
+```
+class FinancialMetric : INotifyPropertyChanged, IEnumerable<KeyValuePair<string, FormattableObject>>
+{
+    .
+    .
+    .
+    private void ProvidePropertyValue(object? sender, PropertyChangedEventArgs e)
+    {
+        dynamic generic = e;
+        if (sender is FormattableObject formattable)
+        {
+            var formatTarget = formattable.Target as IFormattable;
+            switch (e.PropertyName)
+            {
+                case nameof(FormattableObject.Text):
+                    // T E X T    S A M P L E S
+                    switch (Metric)
+                    {
+                        case Metric.Revenue:
+                            if (formatTarget is null)
+                            {
+                                generic.NewValue = formattable.Target?.ToString();
+                            }
+                            else
+                            {
+                                generic.NewValue = formatTarget.ToString("C0", CultureInfo.CurrentCulture);
+                            }
+                            break;
+                        case Metric.StockPrice:
+                            if (formatTarget is null)
+                            {
+                                generic.NewValue = formattable.Target?.ToString();
+                            }
+                            else
+                            {
+                                generic.NewValue = formatTarget.ToString("C2", CultureInfo.CurrentCulture);
+                            }
+                            break;
+                    }
+                    break;
+                case nameof(FormattableObject.ForeColor):
+                    // C O L O R    S A M P L E S
+                    switch (Metric)
+                    {
+                        case Metric.Growth:
+                            generic.NewValue = $"{formattable.Target}".Contains("-") ?
+                                Brushes.Red : Brushes.Green;
+                            break;
+                    }
+                    break;
+                case nameof(FormattableObject.BackColor):
+                    break;
+            }
+        }
+    }
+    .
+    .
+    .
+}
+```
 

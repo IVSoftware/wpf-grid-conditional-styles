@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
@@ -41,7 +42,6 @@ namespace wpf_grid_conditional_styles
                                     textBlockFactory.SetBinding(TextBlock.ForegroundProperty, new Binding("ForeColor"));
                                     textBlockFactory.SetBinding(TextBlock.BackgroundProperty, new Binding("BackColor"));
                                     textBlockFactory.SetValue(TextBlock.PaddingProperty, new Thickness(5, 0, 5, 0));
-
                                     var template = new DataTemplate
                                     {
                                         VisualTree = textBlockFactory,
@@ -53,10 +53,6 @@ namespace wpf_grid_conditional_styles
                                         CellTemplate = template
                                     });
                                 }
-                                // This is the DYNAMIC GLUE that allows this specific
-                                // FinancialMetric to respond to this specific FormattableObject.
-                                formattable.PropertyRequestedFromParent -= metric.ProvidePropertyValue;
-                                formattable.PropertyRequestedFromParent += metric.ProvidePropertyValue;
                             }
                             else Debug.Fail($"Expecting {nameof(FormattableObject)}");
                             break;
@@ -153,6 +149,10 @@ namespace wpf_grid_conditional_styles
                 else
                 {
                     _columns[key] = value;
+                    // This is the DYNAMIC GLUE that allows this specific
+                    // FinancialMetric to respond to this specific FormattableObject.
+                    value.PropertyRequestedFromParent -= ProvidePropertyValue;
+                    value.PropertyRequestedFromParent += ProvidePropertyValue;
                     ColumnChanged?.Invoke(this, new ColumnChangeEventArgs(key, value));
                 }
                 OnPropertyChanged(key);
@@ -163,7 +163,7 @@ namespace wpf_grid_conditional_styles
         protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null) =>
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 
-        internal void ProvidePropertyValue(object? sender, PropertyChangedEventArgs e)
+        private void ProvidePropertyValue(object? sender, PropertyChangedEventArgs e)
         {
             dynamic generic = e;
             if (sender is FormattableObject formattable)
@@ -212,7 +212,6 @@ namespace wpf_grid_conditional_styles
                 }
             }
         }
-
         public event PropertyChangedEventHandler? PropertyChanged;
         public static event EventHandler<ColumnChangeEventArgs>? ColumnChanged;
     }
