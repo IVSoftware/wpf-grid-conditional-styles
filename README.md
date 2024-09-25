@@ -1,4 +1,3 @@
-
 Your specification is for _dynamic_ columns, which makes things more interesting. One way to meet your spec is by using `DataGridTemplateColumn` instead of `DataGridTextColumn`. That's the short answer (the rest is details).
 
 ```
@@ -9,7 +8,7 @@ public MainWindow()
     .
     .
     // Subscribe to static event
-    FinancialMetric.DynamicValueChanged += (sender, e) =>
+    FinancialMetric.DynamicValueCollectionChanged += (sender, e) =>
     {
         var textBlockFactory = new FrameworkElementFactory(typeof(TextBlock));
         textBlockFactory.SetBinding(DataContextProperty, new Binding($"[{e.Key}]"));
@@ -29,6 +28,9 @@ public MainWindow()
             CellTemplate = template
         });
     }
+    .
+    .
+    .
 }
 ```
 
@@ -39,9 +41,9 @@ ___
 
 #### Example `FinancialMetric` class (represents a line item bound to a grid row)
 
-What the above snippet says about the `FinancialMetric` object bound to a given row is that there needs to be an indexer that provides the data context. There's going to be a _key_, the dynamically specified column name, and we need to be able to retrieve an object that can provide the `ForeColor`, `BackColor`, and (formatted) `Text`. 
+What the above snippet says about the `FinancialMetric` object that's bound to a given row is that there needs to be an indexer that provides the data context for the individual formatted cell. There's going to be a _key_, the dynamically specified column name, and it needs to return "some object" that can provide the `ForeColor`, `BackColor`, and (formatted) `Text`. 
 
-As a forward reference, we'll be making our own `FormattableObject` class that can wrap any `object` while also providing the cell-specific format info. We know that `FinancialMetric` class must provide an indexer for `FinancialMetic` that can set or get one of these objects, and subscribing to an event that will give `FinancialObject` the "final say" on the formatting of a given cell value, based on runtime calculations by the containing object. 
+As a forward reference, we'll be making our own `FormattableObject` class that can wrap any `object` while also providing the cell-specific format info. We know that `FinancialMetric` class must provide an indexer for `FinancialMetric` that can set or get one of these objects, and subscribing to an event that will give `FinancialMetric` the "final say" on the formatting of a given cell value, based on runtime calculations by the containing object. 
 
 ```
 class FinancialMetric
@@ -62,7 +64,7 @@ class FinancialMetric
             }
             else
             {
-                _columns[key] = value;
+                _columns[key] = value;                
 
                 // This is the DYNAMIC GLUE that allows this specific
                 // FinancialMetric to respond to this specific FormattableObject.
@@ -72,7 +74,7 @@ class FinancialMetric
                 // This is an event, declared static, that informs the grid that
                 // this value goes in a column named {key} which needs to be created
                 // if it doesn't already exist.
-                ColumnChanged?.Invoke(this, new ColumnChangeEventArgs(key, value));
+                DynamicValueCollectionChanged?.Invoke(this, new DynamicValueChangedEventArgs(key, value));
             }
             OnPropertyChanged(key);
         }
@@ -81,6 +83,7 @@ class FinancialMetric
     .
     .
     .
+    public static event EventHandler<DynamicValueChangedEventArgs>? DynamicValueCollectionChanged;
 }
 ```
 ___
@@ -155,9 +158,9 @@ class FormattableObject : INotifyPropertyChanged
 
     // Requesting the formatted value of the Text from parent.
     public string? Text => RequestFromParent(Target?.ToString());
-    
+
     public event PropertyChangedEventHandler? PropertyChanged;
-    public static event EventHandler<ColumnChangeEventArgs>? ColumnChanged;
+    public event PropertyChangedEventHandler? PropertyRequestedFromParent;
     .
     .
     .

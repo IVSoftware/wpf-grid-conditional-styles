@@ -20,7 +20,7 @@ namespace wpf_grid_conditional_styles
         public MainWindow()
         {
             InitializeComponent();
-            FinancialMetric.DynamicValueChanged += (sender, e) =>
+            FinancialMetric.DynamicValueCollectionChanged += (sender, e) =>
             {
                 if (sender is FinancialMetric metric)
                 {
@@ -144,17 +144,22 @@ namespace wpf_grid_conditional_styles
                     if (_columns.ContainsKey(key))
                     {
                         _columns.Remove(key);
-                        DynamicValueChanged?.Invoke(this, new DynamicValueChangedEventArgs(key));
+                        DynamicValueCollectionChanged?.Invoke(this, new DynamicValueChangedEventArgs(key));
                     }
                 }
                 else
                 {
                     _columns[key] = value;
+
                     // This is the DYNAMIC GLUE that allows this specific
                     // FinancialMetric to respond to this specific FormattableObject.
                     value.PropertyRequestedFromParent -= ProvidePropertyValue;
                     value.PropertyRequestedFromParent += ProvidePropertyValue;
-                    DynamicValueChanged?.Invoke(this, new DynamicValueChangedEventArgs(key, value));
+
+                    // This is an event, declared static, that informs the grid that
+                    // this value goes in a column named {key} which needs to be created
+                    // if it doesn't already exist.
+                    DynamicValueCollectionChanged?.Invoke(this, new DynamicValueChangedEventArgs(key, value));
                 }
                 OnPropertyChanged(key);
             }
@@ -214,7 +219,7 @@ namespace wpf_grid_conditional_styles
             }
         }
         public event PropertyChangedEventHandler? PropertyChanged;
-        public static event EventHandler<DynamicValueChangedEventArgs>? DynamicValueChanged;
+        public static event EventHandler<DynamicValueChangedEventArgs>? DynamicValueCollectionChanged;
     }
     enum DynamicValueChangedAction { Add, Remove }
     class DynamicValueChangedEventArgs : EventArgs
