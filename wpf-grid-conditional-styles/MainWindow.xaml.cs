@@ -20,13 +20,13 @@ namespace wpf_grid_conditional_styles
         public MainWindow()
         {
             InitializeComponent();
-            FinancialMetric.ColumnChanged += (sender, e) =>
+            FinancialMetric.DynamicValueChanged += (sender, e) =>
             {
                 if (sender is FinancialMetric metric)
                 {
                     switch (e.Action)
                     {
-                        case ColumnChangeAction.Add:
+                        case DynamicValueChangedAction.Add:
                             if (metric[e.Key] is FormattableObject formattable)
                             {
                                 // Add column to grid IF NECESSARY.
@@ -57,7 +57,7 @@ namespace wpf_grid_conditional_styles
                             }
                             else Debug.Fail($"Expecting {nameof(FormattableObject)}");
                             break;
-                        case ColumnChangeAction.Remove:
+                        case DynamicValueChangedAction.Remove:
                             // Check to see whether the key is still in use before removing.
                             if (!DataContext.FinancialMetrics
                                 .Any(fm => fm != metric && fm[e.Key] != null))
@@ -144,7 +144,7 @@ namespace wpf_grid_conditional_styles
                     if (_columns.ContainsKey(key))
                     {
                         _columns.Remove(key);
-                        ColumnChanged?.Invoke(this, new ColumnChangeEventArgs(key));
+                        DynamicValueChanged?.Invoke(this, new DynamicValueChangedEventArgs(key));
                     }
                 }
                 else
@@ -154,7 +154,7 @@ namespace wpf_grid_conditional_styles
                     // FinancialMetric to respond to this specific FormattableObject.
                     value.PropertyRequestedFromParent -= ProvidePropertyValue;
                     value.PropertyRequestedFromParent += ProvidePropertyValue;
-                    ColumnChanged?.Invoke(this, new ColumnChangeEventArgs(key, value));
+                    DynamicValueChanged?.Invoke(this, new DynamicValueChangedEventArgs(key, value));
                 }
                 OnPropertyChanged(key);
             }
@@ -214,20 +214,20 @@ namespace wpf_grid_conditional_styles
             }
         }
         public event PropertyChangedEventHandler? PropertyChanged;
-        public static event EventHandler<ColumnChangeEventArgs>? ColumnChanged;
+        public static event EventHandler<DynamicValueChangedEventArgs>? DynamicValueChanged;
     }
-    enum ColumnChangeAction { Add, Remove }
-    class ColumnChangeEventArgs : EventArgs
+    enum DynamicValueChangedAction { Add, Remove }
+    class DynamicValueChangedEventArgs : EventArgs
     {
-        public ColumnChangeEventArgs(string key, object? value = null)
+        public DynamicValueChangedEventArgs(string key, object? value = null)
         {
             Key = key;
             Value = value;
-            Action = value is null ? ColumnChangeAction.Remove : ColumnChangeAction.Add;
+            Action = value is null ? DynamicValueChangedAction.Remove : DynamicValueChangedAction.Add;
         }
         public string Key { get; }
         public object? Value { get; }
-        public ColumnChangeAction Action { get; }
+        public DynamicValueChangedAction Action { get; }
     }
     class FormattableObject : INotifyPropertyChanged
     {

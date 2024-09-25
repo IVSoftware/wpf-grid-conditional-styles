@@ -2,23 +2,34 @@
 Your specification is for _dynamic_ columns, which makes things more interesting. One way to meet your spec is by using `DataGridTemplateColumn` instead of `DataGridTextColumn`. That's the short answer (the rest is details).
 
 ```
-var textBlockFactory = new FrameworkElementFactory(typeof(TextBlock));
-textBlockFactory.SetBinding(DataContextProperty, new Binding($"[{e.Key}]"));
-textBlockFactory.SetBinding(TextBlock.TextProperty, new Binding("Text"));
-textBlockFactory.SetBinding(TextBlock.ForegroundProperty, new Binding("ForeColor"));
-textBlockFactory.SetBinding(TextBlock.BackgroundProperty, new Binding("BackColor"));
-textBlockFactory.SetValue(TextBlock.PaddingProperty, new Thickness(5, 0, 5, 0));
-
-var template = new DataTemplate
+public MainWindow()
 {
-    VisualTree = textBlockFactory,
-};
+    InitializeComponent();
+    .
+    .
+    .
+    // Subscribe to static event
+    FinancialMetric.DynamicValueChanged += (sender, e) =>
+    {
+        var textBlockFactory = new FrameworkElementFactory(typeof(TextBlock));
+        textBlockFactory.SetBinding(DataContextProperty, new Binding($"[{e.Key}]"));
+        textBlockFactory.SetBinding(TextBlock.TextProperty, new Binding("Text"));
+        textBlockFactory.SetBinding(TextBlock.ForegroundProperty, new Binding("ForeColor"));
+        textBlockFactory.SetBinding(TextBlock.BackgroundProperty, new Binding("BackColor"));
+        textBlockFactory.SetValue(TextBlock.PaddingProperty, new Thickness(5, 0, 5, 0));
 
-HistoricDataGrid.Columns.Add(new DataGridTemplateColumn
-{
-    Header = e.Key,
-    CellTemplate = template
-});
+        var template = new DataTemplate
+        {
+            VisualTree = textBlockFactory,
+        };
+
+        HistoricDataGrid.Columns.Add(new DataGridTemplateColumn
+        {
+            Header = e.Key,
+            CellTemplate = template
+        });
+    }
+}
 ```
 
 ___
