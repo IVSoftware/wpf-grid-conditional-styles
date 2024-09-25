@@ -77,11 +77,12 @@ ___
 ###### USAGE: Create 5 different line items with dynamic column values.
 
 ```
+// Add line items with initial formatting, but Parent gets the final word.
 DataContext.FinancialMetrics.Add(new FinancialMetric(Metric.Growth)
 {
-    {"2022", new FormattableObject{Target= "-4.0%" } },
-    {"2023", new FormattableObject{Target= " 1.2%" } },
-    {"2024", new FormattableObject{Target= "11.9%" } },
+    {"2022", "-4.0%" }, // Using implicit string CTOR
+    {"2023", " 1.2%" },
+    {"2024", "11.9%" },
 });
 DataContext.FinancialMetrics.Add(new FinancialMetric(Metric.EBIT));
 DataContext.FinancialMetrics.Add(new FinancialMetric(Metric.ROI));
@@ -101,7 +102,7 @@ ___
 
 #### `FinancialMetric` gets the final say on formatting.
 
-If we hava a `FinancialMetric` instance, we could use the expression `var formattedObject = lineItem["2023"]`. This is exactly what the `DataGridTemplateColumn` binding is doing. And since the grid is going to come `get` the value to paint the cell using this `FormattableObject`, the trick is going to be eventing the line item first.
+If we have a `FinancialMetric` instance, we could use the expression `var formattedObject = lineItem["2023"]`. This is exactly what the `DataGridTemplateColumn` binding is doing. And since the grid is going to come `get` the value to paint the cell using this `FormattableObject`, the trick is going to be eventing the line item first.
 
 ```
 class FormattableObject : INotifyPropertyChanged
@@ -143,9 +144,18 @@ class FormattableObject : INotifyPropertyChanged
 
     // Requesting the formatted value of the Text from parent.
     public string? Text => RequestFromParent(Target?.ToString());
+    
+    public event PropertyChangedEventHandler? PropertyChanged;
+    public static event EventHandler<ColumnChangeEventArgs>? ColumnChanged;
     .
     .
     .
+    // Implicit conversions
+    public static implicit operator FormattableObject(double value) =>
+        new FormattableObject { Target = value };
+
+    public static implicit operator FormattableObject(string value) =>
+        new FormattableObject { Target = value };
 }
 ```
 ___
