@@ -1,5 +1,5 @@
 
-Your specification is for _dynamic_ columns, which makes things more interesting. One way to meet your spec is by using `DataGridTemplateColumn` instead of `DataGridTextColumn` and that's how I would answer (the rest is details).
+Your specification is for _dynamic_ columns, which makes things more interesting. One way to meet your spec is by using `DataGridTemplateColumn` instead of `DataGridTextColumn`. That's the short answer (the rest is details).
 
 ```
 var textBlockFactory = new FrameworkElementFactory(typeof(TextBlock));
