@@ -23,7 +23,7 @@ HistoricDataGrid.Columns.Add(new DataGridTemplateColumn
 
 ___
 
-_It takes a few steps to glue the bindings together, and before I waste your time reading below where I explain things, you might want to [clone]() and run my working example to verify that this is the kind of behavior you're looking for._
+_It takes a few steps to glue the bindings together, and before I waste your time reading below where I explain things, you might want to [clone](https://github.com/IVSoftware/wpf-grid-conditional-styles.git) and run my working example to verify that this is the kind of behavior you're looking for._
 ___
 
 #### Example `FinancialMetric` class (represents a line item bound to a grid row)
@@ -96,6 +96,7 @@ DataContext.FinancialMetrics.Add(new FinancialMetric(Metric.StockPrice)
 });
 ```
 
+[![screenshot][1]][1]
 ___
 
 #### `FinancialMetric` gets the final say on formatting.
@@ -146,7 +147,7 @@ class FormattableObject : INotifyPropertyChanged
     .
     .
 }
-
+```
 ___
 
 #### Example of Parent handling the formatting request
@@ -212,3 +213,5 @@ class FinancialMetric : INotifyPropertyChanged, IEnumerable<KeyValuePair<string,
 }
 ```
 
+
+  [1]: https://i.sstatic.net/TX87w8Jj.png

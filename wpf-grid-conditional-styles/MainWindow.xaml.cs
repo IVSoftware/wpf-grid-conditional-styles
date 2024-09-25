@@ -42,6 +42,7 @@ namespace wpf_grid_conditional_styles
                                     textBlockFactory.SetBinding(TextBlock.ForegroundProperty, new Binding("ForeColor"));
                                     textBlockFactory.SetBinding(TextBlock.BackgroundProperty, new Binding("BackColor"));
                                     textBlockFactory.SetValue(TextBlock.PaddingProperty, new Thickness(5, 0, 5, 0));
+                                    textBlockFactory.SetValue(TextBlock.MinWidthProperty, 75d);
                                     var template = new DataTemplate
                                     {
                                         VisualTree = textBlockFactory,
